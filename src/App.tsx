@@ -1,20 +1,22 @@
-import { useRef, useState, useEffect } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { Gltf, PerspectiveCamera } from '@react-three/drei'
+import { forwardRef, useRef, useState, useEffect, useMemo } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
+import { Gltf, PerspectiveCamera, Bvh, useHelper, Center } from '@react-three/drei'
 
-const Duck = (props) => {
-  const ref = useRef()
+const Model = forwardRef(
+  ({position, ...props}, ref) => {
+  const three = useThree()
   return (
-    <Gltf {...props} ref={ref} src='Duck.glb' />
-  )
+    <Bvh>
+      <Center top position={position}>
+        <Gltf {...props} ref={ref} onClick={
+          e =>  console.log(three)
+        } />
+      </Center>
+    </Bvh>
+    )  
 }
+)
 
-const Shell = (props) => {
-  const ref = useRef()
-  return (
-    <Gltf {...props} ref={ref} src='IridescenceAbalone.glb' />
-  )
-}
 
 const initialDuckPos = [0,3,0]
 
@@ -36,15 +38,17 @@ function App() {
 
   return (
     <>
-    <Canvas style={{ height: 'calc(100vh - 2em)', width: '100%' }} onClick={run}>
+    <Canvas style={{ height: '100vh', width: '100vw' }} onClick={run}>
       <PerspectiveCamera makeDefault position={[0, 2, 10]} rotation={[0,0,0]} />
       <ambientLight intensity={Math.PI / 2} />
       <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} decay={0} intensity={Math.PI} />
       <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
-      <Duck position={duckPos} />
-      <Shell position={shellPos} scale={[20,20,20]} rotation={[-Math.PI/4,0,0]} />
+      <gridHelper />
+ 
+      <Model src='Duck.glb' position={duckPos} />
+      <Model src='IridescenceAbalone.glb' position={shellPos} scale={[20,20,20]} rotation={[-Math.PI/4,0,0]} />
+      <Model src='IridescenceAbalone.glb' position={[-4.5,0,0]} scale={[20,20,20]} rotation={[0,0,0]} />
     </Canvas>
-    <b>Duck should sit inside shell</b>
     </>
   )
 }
