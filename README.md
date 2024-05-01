@@ -1,30 +1,37 @@
-# React + TypeScript + Vite
+# Stacking
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![-](tetris.jpeg)
 
-Currently, two official plugins are available:
+We wish to implement a function that stacks arbitrary GLTF models, in a manner similar to tetris.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+![-](duckshellarrow.png)
 
-## Expanding the ESLint configuration
+We will trigger a function to perform a shapecast query, then use the results to update the state of the model to be dropped.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
+The function should do a downward shapecast from a specified X/Z position, using the duck model. Ideally the origin Y position would be `Infinity`, but using a number like 1000 is acceptable.
 
 ```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
+const three = useThree()
+
+const shapecastDown = ({
+  origin: [
+    x,
+    y = Infinity, // this is preferable but 1000 is ok
+    z
+  ],
+  shape
+}) => {
+
+  return {
+    object, // what object we landed on
+    yOffset // Y position of duck
+  }
 }
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+The function will return a reference or ID for the first model that the shapecast contacts, and the position of the contact.
+
+* We are centering models using [X, Y + height/2, Z] (see blue dots).
+* Models will have arbritrary rotations applied.
+* We will position the duck relative to the shell position, not world coordinates, however this just needs to be possible, and does not need to be implemented.
+
