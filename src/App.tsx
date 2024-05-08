@@ -8,6 +8,7 @@ import {
   RapierRigidBody,
 } from "@react-three/rapier";
 import { Quaternion, Euler } from "three";
+import { getShape, setRigidBody } from "./rigidBodyMap";
 
 // Reusuable objects to save on GC
 const quaternion = new Quaternion();
@@ -17,7 +18,7 @@ const euler = new Euler();
 export const castShapeDown = (
   { world },
   { shape, position, rotation, distance = 10000 },
-  predicate
+  predicate,
 ) =>
   world.castShape(
     { x: position[0], y: distance, z: position[2] },
@@ -30,18 +31,8 @@ export const castShapeDown = (
     undefined,
     undefined,
     undefined,
-    predicate
+    predicate,
   );
-
-const rigidBodyMap = new Map<string, RapierRigidBody>();
-
-function getShape(id: string) {
-  return rigidBodyMap.get(id)?.collider(0).shape;
-}
-
-function setRigidBody(id: string, body: RapierRigidBody): void {
-  rigidBodyMap.set(id, body);
-}
 
 const Model = ({ id, position, rotation, ...props }) => {
   return (
@@ -61,32 +52,24 @@ const Model = ({ id, position, rotation, ...props }) => {
 const initialDuckPos = [0, 3.5, 0];
 function World() {
   const [duckPos, setDuckPos] = useState(initialDuckPos);
-  const [shell1Pos, setShell1Pos] = useState([0, 0, 0]);
+  const [duckRot, setDuckRot] = useState([0, 0, 0]);
 
   const rapier = useRapier();
 
   const handleGravity = (id) => {
-    // if (!duckRef.current) return;
-    // const handle = duckRef.current.handle
-    // const shape = rapier.colliderStates.get(handle).collider._shape
-    // const shape = duckRef.current.collider()._shape;
-
     const shape = getShape(id);
-
+    const position = duckPos;
+    const rotation = duckRot;
     const hit = castShapeDown(
       rapier,
-      {
-        shape,
-        position: [0, 0, 0],
-        rotation: [0, 0, 0],
-      },
+      { shape, position, rotation },
       (match) => {
         const pieceData = rapier.rigidBodyStates.get(match.handle)?.object
           ?.userData?.pieceData;
         if (!pieceData) return false;
         if (pieceData.id === id) return false; // ignore selected pieces
         return true;
-      }
+      },
     );
     const newY = hit ? 10000 - hit.toi : 0; // TODO: if no hit, run a query against a plane at Y=0
     setDuckPos([0, newY, 0]);
@@ -102,11 +85,11 @@ function World() {
 
   return (
     <group onClick={run}>
-      <Model src="Duck.glb" id="duck" position={duckPos} />
+      <Model src="Duck.glb" id="duck" position={duckPos} rotation={duckRot} />
       <Model
         src="IridescenceAbalone.glb"
         id="shell1"
-        position={shell1Pos}
+        position={[4, 0, 0]}
         scale={[20, 20, 20]}
         rotation={[2, 0, 0]}
       />
