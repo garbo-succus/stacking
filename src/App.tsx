@@ -1,36 +1,23 @@
-import { forwardRef, useRef, useState, useEffect } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
-import { Gltf, PerspectiveCamera, Center } from "@react-three/drei";
+import { useState, useEffect } from "react";
+import { Canvas } from "@react-three/fiber";
+import { Gltf, PerspectiveCamera, OrbitControls } from "@react-three/drei";
 import {
   useRapier,
   Physics,
   RigidBody,
-  CuboidCollider,
+  RapierRigidBody,
 } from "@react-three/rapier";
 import { Quaternion, Euler } from "three";
-
-import { create } from 'zustand'
 
 // Reusuable objects to save on GC
 const quaternion = new Quaternion();
 const euler = new Euler();
 
-// TODO: We shouldn't need to iterate over the whole list every time
-// Get a map of { [id]: rapierShape, ... }
-const getShapes = ({ colliderStates }) => {
-  const shapes = {};
-  colliderStates.forEach((state) => {
-    const key = state.worldParent?.userData?.pieceData?.id;
-    if (key) shapes[key] = state.collider._shape;
-  });
-  return shapes;
-};
-
 // Cast downward ray from origin & get list of pieces (sorted by Y position)
 export const castShapeDown = (
   { world },
   { shape, position, rotation, distance = 10000 },
-  predicate,
+  predicate
 ) =>
   world.castShape(
     { x: position[0], y: distance, z: position[2] },
@@ -43,21 +30,28 @@ export const castShapeDown = (
     undefined,
     undefined,
     undefined,
-    predicate,
+    predicate
   );
 
+const rigidBodyMap = new Map<string, RapierRigidBody>();
+
+function getShape(id: string) {
+  return rigidBodyMap.get(id)?.collider(0).shape;
+}
+
+function setRigidBody(id: string, body: RapierRigidBody): void {
+  rigidBodyMap.set(id, body);
+}
+
 const Model = ({ id, position, rotation, ...props }) => {
-  const three = useThree();
-  const ref = useRef(); // TODO: Can we keep refs in a state object, instead of using getShapes?
   return (
     <RigidBody
       colliders="trimesh"
       userData={{ pieceData: { id } }}
-      transformState={false}
       type="fixed"
       position={position}
       rotation={rotation}
-      ref={ref}
+      ref={setRigidBody.bind(null, id)}
     >
       <Gltf {...props} />
     </RigidBody>
@@ -77,8 +71,7 @@ function World() {
     // const shape = rapier.colliderStates.get(handle).collider._shape
     // const shape = duckRef.current.collider()._shape;
 
-    const shapes = getShapes(rapier);
-    const shape = shapes[id];
+    const shape = getShape(id);
 
     const hit = castShapeDown(
       rapier,
@@ -93,7 +86,7 @@ function World() {
         if (!pieceData) return false;
         if (pieceData.id === id) return false; // ignore selected pieces
         return true;
-      },
+      }
     );
     const newY = hit ? 10000 - hit.toi : 0; // TODO: if no hit, run a query against a plane at Y=0
     setDuckPos([0, newY, 0]);
@@ -125,6 +118,7 @@ function App() {
   return (
     <>
       <Canvas style={{ height: "100vh", width: "100vw" }}>
+        <OrbitControls />
         <Physics debug>
           <PerspectiveCamera
             makeDefault
