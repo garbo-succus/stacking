@@ -7,32 +7,8 @@ import {
   RigidBody,
   RapierRigidBody,
 } from "@react-three/rapier";
-import { Quaternion, Euler } from "three";
+import { gravity } from "./gravity";
 import { getShape, setRigidBody } from "./rigidBodyMap";
-
-// Reusuable objects to save on GC
-const quaternion = new Quaternion();
-const euler = new Euler();
-
-// Cast downward ray from origin & get list of pieces (sorted by Y position)
-export const castShapeDown = (
-  { world },
-  { shape, position, rotation, distance = 10000 },
-  predicate,
-) =>
-  world.castShape(
-    { x: position[0], y: distance, z: position[2] },
-    quaternion.setFromEuler(euler.set(...rotation)),
-    { x: 0, y: -1, z: 0 },
-    shape,
-    distance,
-    false,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    predicate,
-  );
 
 const Model = ({ id, position, rotation, ...props }) => {
   return (
@@ -50,6 +26,7 @@ const Model = ({ id, position, rotation, ...props }) => {
 };
 
 const initialDuckPos = [0, 3.5, 0];
+
 function World() {
   const [duckPos, setDuckPos] = useState(initialDuckPos);
   const [duckRot, setDuckRot] = useState([0, 0, 0]);
@@ -57,21 +34,15 @@ function World() {
   const rapier = useRapier();
 
   const handleGravity = (id) => {
-    const shape = getShape(id);
-    const position = duckPos;
-    const rotation = duckRot;
-    const hit = castShapeDown(
-      rapier,
-      { shape, position, rotation },
-      (match) => {
-        const pieceData = rapier.rigidBodyStates.get(match.handle)?.object
-          ?.userData?.pieceData;
-        if (!pieceData) return false;
-        if (pieceData.id === id) return false; // ignore selected pieces
-        return true;
+    const newY = gravity(
+      rapier.world,
+      {
+        shape: getShape(id),
+        position: duckPos,
+        rotation: duckRot,
       },
+      { duck: true },
     );
-    const newY = hit ? 10000 - hit.toi : 0; // TODO: if no hit, run a query against a plane at Y=0
     setDuckPos([0, newY, 0]);
   };
 
@@ -89,7 +60,7 @@ function World() {
       <Model
         src="IridescenceAbalone.glb"
         id="shell1"
-        position={[4, 0, 0]}
+        position={[0, 0, 0]}
         scale={[20, 20, 20]}
         rotation={[2, 0, 0]}
       />
