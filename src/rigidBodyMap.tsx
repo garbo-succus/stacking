@@ -1,3 +1,5 @@
+import { RapierRigidBody } from "@react-three/rapier";
+
 export const rigidBodyMap = new Map<string, RapierRigidBody>();
 
 export const getShape = (id: string) => rigidBodyMap.get(id)?.collider(0).shape;
